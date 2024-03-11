@@ -1,17 +1,19 @@
 @use('Sweet1s\MoonshineFileManager\FileManagerTypeEnum')
 
+@php($uniqueID = $element->id() . '_' . Str::random(5))
+
 <x-moonshine::form.input
     type="hidden"
-    id="lfm-input"
-    class="lfm-input"
+    id="lfm-input__{{ $uniqueID }}"
+    class="lfm-input__{{ $uniqueID }}"
     :name="$element->name()"
     :value="implode(',', $element->getFullPathValues())"
 />
 
 <div class="form-group form-group-dropzone">
     <x-moonshine::form.button
-        data-input="lfm-input"
-        class="lfm"
+        data-input="lfm-input__{{ $uniqueID  }}"
+        class="lfm__{{ $uniqueID }}"
     >
         {{ $element->getTitle() }}
     </x-moonshine::form.button>
@@ -46,7 +48,7 @@
 
 
 <script>
-    let lfm = function (id, options) {
+    let lfm_{{ $uniqueID }} = function (id, options) {
         let button = document.querySelector(`.${id}`);
 
         button.addEventListener('click', function () {
@@ -73,18 +75,19 @@
         });
     };
 
-    let route_prefix = "{{ url('filemanager') }}";
-    lfm('lfm', {prefix: route_prefix});
+    let route_prefix_{{ $uniqueID }} = "{{ url('filemanager') }}";
+    lfm_{{ $uniqueID }}('lfm__{{ $uniqueID }}', {prefix: route_prefix_{{ $uniqueID }}});
 
-    let lfmInput = document.querySelector('.lfm-input');
+    let lfmInput{{ $uniqueID }} = document.querySelector('.lfm-input__{{ $uniqueID }}');
 
-    let initialValues = JSON.parse('{!! json_encode($element->getFullPathValues()) !!}');
+    let initialValues_{{ $uniqueID }} = JSON.parse('{!! json_encode($element->getFullPathValues()) !!}');
 
-    document.querySelectorAll('.lfm + * button').forEach((button) => {
+    document.querySelectorAll('.lfm__{{ $uniqueID }} + * button').forEach((button) => {
+
         button.addEventListener('click', function () {
             let image = button.nextElementSibling.getAttribute('src');
 
-            let values = lfmInput.value.split(',');
+            let values = lfmInput{{ $uniqueID }}.value.split(',');
 
             if (values.includes(image)) {
                 values = values.filter(function (value) {
@@ -94,17 +97,17 @@
                 values.push(image);
             }
 
-            lfmInput.value = values.join(',');
+            lfmInput{{ $uniqueID }}.value = values.join(',');
         });
     });
 
-    lfmInput.addEventListener('change', function () {
-        let values = lfmInput.value.split(',');
+    lfmInput{{ $uniqueID }}.addEventListener('change', function () {
+        let values = lfmInput{{ $uniqueID }}.value.split(',');
 
-        let newValues = new Set(initialValues.concat(values));
+        let newValues = new Set(initialValues_{{ $uniqueID }}.concat(values));
 
-        lfmInput.value = Array.from(newValues).join(',') || null;
+        lfmInput{{ $uniqueID }}.value = Array.from(newValues).join(',') || null;
 
-        document.querySelector('.lfm').innerText = `{{ $element->getTitle() }} (${newValues.size})`
+        document.querySelector('.lfm_{{ $uniqueID }}').innerText = `{{ $element->getTitle() }} (${newValues.size})`
     });
 </script>
