@@ -81,6 +81,21 @@ class PostResource extends ModelResource
 }
 ```
 
+2. All fields to be used as filemanager must be under the cast collection
+
+```PHP
+protected $casts = [ 'images' => 'collection', ];
+
+//or
+
+protected function casts(): array
+{
+    return [
+        'images' => 'collection',
+    ];
+}
+```
+
 ---
 
 #### _How does it look in the Admin Panel ?_
