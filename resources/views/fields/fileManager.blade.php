@@ -2,50 +2,56 @@
 
 @php($uniqueID = $element->id() . '_' . Str::random(5))
 
-<x-moonshine::form.input
-    type="hidden"
-    id="lfm-input__{{ $uniqueID }}"
-    class="lfm-input__{{ $uniqueID }}"
-    :name="$element->name()"
-    :value="implode(',', $element->getFullPathValues())"
-/>
+<div x-data="fileManager">
+    <x-moonshine::form.input
+        x-ref="fileManagerInput"
+        x-on:change="eventChangeFMInput"
+        type="hidden"
+        id="lfm-input__{{ $uniqueID }}"
+        class="lfm-input__{{ $uniqueID }}"
+        :name="$element->name()"
+        :value="implode(',', $element->getFullPathValues())"
+    />
 
-<div class="form-group form-group-dropzone">
-    <x-moonshine::form.button
-        data-input="lfm-input__{{ $uniqueID  }}"
-        class="lfm__{{ $uniqueID }}"
-    >
-        {{ $element->getTitle() }}
-    </x-moonshine::form.button>
+    <div class="form-group form-group-dropzone">
+        <x-moonshine::form.button
+            x-ref="fileManagerButton"
+            data-input="lfm-input__{{ $uniqueID  }}"
+            class="lfm__{{ $uniqueID }}"
+        >
+            {{ $element->getTitle() }}
+        </x-moonshine::form.button>
 
-    @php($raw = is_iterable($value) ? $value : [$value])
-    @php($files = $element->getFullPathValues())
+        @php($raw = is_iterable($value) ? $value : [$value])
+        @php($files = $element->getFullPathValues())
 
-    @if(is_array($files) ? array_filter($files) : $files->isNotEmpty())
-        <div class="dropzone">
-            <div class="dropzone-items"
-                 x-data="sortable"
-                 data-handle=".dropzone-item"
-            >
-                @foreach($files as $index => $file)
-                    <x-moonshine::form.file-item
-                        :attributes="$element->attributes()->merge([
+        @if(is_array($files) ? array_filter($files) : $files->isNotEmpty())
+            <div class="dropzone">
+                <div class="dropzone-items"
+                     x-data="sortable"
+                     data-handle=".dropzone-item"
+                >
+                    @foreach($files as $index => $file)
+                        <x-moonshine::form.file-item
+                            :attributes="$element->attributes()->merge([
                             'id' => $element->id(),
                             'name' => $element->name()
                         ])"
-                        :raw="$raw[$index]"
-                        :file="$file"
-                        :download="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image ? false : $element->canDownload()"
-                        :removable="$element->isRemovable()"
-                        :removableAttributes="$element->getRemovableAttributes()"
-                        :imageable="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image"
-                    />
-                @endforeach
+                            :raw="$raw[$index]"
+                            :file="$file"
+                            :download="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image ? false : $element->canDownload()"
+                            :removable="$element->isRemovable()"
+                            :removableAttributes="$element->getRemovableAttributes()"
+                            :imageable="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image"
+                            :itemAttributes="value($element->resolveItemAttributes(), $file, $index)"
+                        />
+                    @endforeach
+                </div>
             </div>
-        </div>
-    @endif
-</div>
+        @endif
+    </div>
 
+</div>
 
 <script>
     let lfm_{{ $uniqueID }} = function (id, options) {
@@ -80,8 +86,6 @@
 
     let lfmInput{{ $uniqueID }} = document.querySelector('.lfm-input__{{ $uniqueID }}');
 
-    let initialValues_{{ $uniqueID }} = JSON.parse('{!! json_encode($element->getFullPathValues()) !!}');
-
     document.querySelectorAll('.lfm__{{ $uniqueID }} + * button').forEach((button) => {
 
         button.addEventListener('click', function () {
@@ -101,13 +105,15 @@
         });
     });
 
-    lfmInput{{ $uniqueID }}.addEventListener('change', function () {
-        let values = lfmInput{{ $uniqueID }}.value.split(',');
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('fileManager', () => ({
+            eventChangeFMInput() {
+                let values = this.$refs.fileManagerInput.value.split(',');
 
-        let newValues = new Set(initialValues_{{ $uniqueID }}.concat(values));
+                let newValues = new Set(values);
 
-        lfmInput{{ $uniqueID }}.value = Array.from(newValues).join(',') || null;
-
-        document.querySelector('.lfm_{{ $uniqueID }}').innerText = `{{ $element->getTitle() }} (${newValues.size})`
+                this.$refs.fileManagerButton.innerText = `{{ $element->getTitle() }} (${newValues.size})`
+            }
+        }))
     });
 </script>
