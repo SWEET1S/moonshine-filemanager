@@ -55,7 +55,6 @@ class FileManager extends File
         if (is_string($file)) {
             $initPath = str_replace(config('app.url') . '/storage/', '', $file);
             $path = Storage::disk('public')->path($initPath);
-
             if (!file_exists($path)) {
                 Log::error("File not found: $path");
                 throw new FieldException("File not found: $path");
@@ -80,18 +79,6 @@ class FileManager extends File
     {
         return function ($item) {
             $requestValue = $this->requestValue();
-
-            if (
-                $requestValue
-                && !$this->isMultiple()
-                && $this->isDeleteFiles()
-                && $requestValue->hashName()
-            ) {
-                $this->checkAndDelete(
-                    request()->input($this->hiddenOldValuesKey()),
-                    $requestValue->hashName()
-                );
-            }
 
             $oldValues = request()
                 ->collect($this->hiddenOldValuesKey());
@@ -122,7 +109,6 @@ class FileManager extends File
                     $saveValue = $this->store($requestValue);
                 }
             }
-
             return data_set($item, $this->column(), $saveValue);
         };
     }

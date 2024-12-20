@@ -24,7 +24,6 @@
 
         @php($raw = is_iterable($value) ? $value : [$value])
         @php($files = $element->getFullPathValues())
-
         @if(is_array($files) ? array_filter($files) : $files->isNotEmpty())
             <div class="dropzone">
                 <div class="dropzone-items"
@@ -86,21 +85,28 @@
 
     let lfmInput{{ $uniqueID }} = document.querySelector('.lfm-input__{{ $uniqueID }}');
 
+    const getPath = (el) => {
+        if(el.nextElementSibling && el.nextElementSibling.hasAttribute('src')) {
+            return el.nextElementSibling.getAttribute('src')
+        } else if(el.previousElementSibling && el.previousElementSibling.querySelector('a')) {
+            return el.previousElementSibling.querySelector('a').getAttribute('href')
+        }
+        return null
+    }
     document.querySelectorAll('.lfm__{{ $uniqueID }} + * button').forEach((button) => {
 
         button.addEventListener('click', function () {
-            let image = button.nextElementSibling.getAttribute('src');
+            let path = getPath(button);
 
             let values = lfmInput{{ $uniqueID }}.value.split(',');
 
-            if (values.includes(image)) {
+            if (values.includes(path)) {
                 values = values.filter(function (value) {
-                    return value !== image;
+                    return value !== path;
                 });
             } else {
-                values.push(image);
+                values.push(path);
             }
-
             lfmInput{{ $uniqueID }}.value = values.join(',');
         });
     });
