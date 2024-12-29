@@ -1,6 +1,14 @@
-@use('Sweet1s\MoonshineFileManager\FileManagerTypeEnum')
+@use('Illuminate\Support\Str')
+@use('Illuminate\Support\Collection')
+@use ('Sweet1s\MoonshineFileManager\FileManagerTypeEnum')
 
-@php($uniqueID = $element->id() . '_' . Str::random(5))
+@php
+
+    /** @var ?Collection $value */
+
+@endphp
+
+@php($uniqueID = Str::random(5))
 
 <div x-data="fileManager">
     <x-moonshine::form.input
@@ -9,8 +17,7 @@
         type="hidden"
         id="lfm-input__{{ $uniqueID }}"
         class="lfm-input__{{ $uniqueID }}"
-        :name="$element->name()"
-        :value="implode(',', $element->getFullPathValues())"
+        name="{{ $column }}"
     />
 
     <div class="form-group form-group-dropzone">
@@ -19,35 +26,29 @@
             data-input="lfm-input__{{ $uniqueID  }}"
             class="lfm__{{ $uniqueID }}"
         >
-            {{ $element->getTitle() }}
+            {{ $title }}
         </x-moonshine::form.button>
 
-        @php($raw = is_iterable($value) ? $value : [$value])
-        @php($files = $element->getFullPathValues())
-        @if(is_array($files) ? array_filter($files) : $files->isNotEmpty())
-            <div class="dropzone">
-                <div class="dropzone-items"
-                     x-data="sortable"
-                     data-handle=".dropzone-item"
-                >
-                    @foreach($files as $index => $file)
-                        <x-moonshine::form.file-item
-                            :attributes="$element->attributes()->merge([
-                            'id' => $element->id(),
-                            'name' => $element->name()
-                        ])"
-                            :raw="$raw[$index]"
-                            :file="$file"
-                            :download="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image ? false : $element->canDownload()"
-                            :removable="$element->isRemovable()"
-                            :removableAttributes="$element->getRemovableAttributes()"
-                            :imageable="$element->getTypeOfFileManager() === FileManagerTypeEnum::Image"
-                            :itemAttributes="value($element->resolveItemAttributes(), $file, $index)"
-                        />
-                    @endforeach
-                </div>
+        <div class="dropzone">
+            <div class="dropzone-items"
+                 x-data="sortable"
+                 data-handle=".dropzone-item"
+            >
+                @foreach($files as $index => $file)
+                    <x-moonshine::form.file-item
+                        :attributes="$attributes"
+                        :itemAttributes="$file['attributes']"
+                        :filename="$file['name']"
+                        :raw="$file['raw_value']"
+                        :file="$file['full_path']"
+                        :removable="$isRemovable"
+                        :removableAttributes="$removableAttributes"
+                        :hiddenAttributes="$hiddenAttributes"
+                        :imageable="$typeOfFileManager === FileManagerTypeEnum::Image"
+                    />
+                @endforeach
             </div>
-        @endif
+        </div>
     </div>
 
 </div>
@@ -60,7 +61,7 @@
             let route_prefix = (options && options.prefix) ? options.prefix : '/filemanager';
             let target_input = document.getElementById(button.getAttribute('data-input'));
 
-            window.open(route_prefix + '?type=' + '{{ $element->getTypeOfFileManager()->value }}', 'FileManager', 'width=900,height=600');
+            window.open(route_prefix + '?type=' + '{{ $typeOfFileManager->value }}', 'FileManager', 'width=900,height=600');
             window.SetUrl = function (items) {
                 let file_path = items.map(function (item) {
                     return item.url;
@@ -86,14 +87,14 @@
     let lfmInput{{ $uniqueID }} = document.querySelector('.lfm-input__{{ $uniqueID }}');
 
     const getPath = (el) => {
-        if(el.nextElementSibling && el.nextElementSibling.hasAttribute('src')) {
+        if (el.nextElementSibling && el.nextElementSibling.hasAttribute('src')) {
             return el.nextElementSibling.getAttribute('src')
-        } else if(el.previousElementSibling && el.previousElementSibling.querySelector('a')) {
+        } else if (el.previousElementSibling && el.previousElementSibling.querySelector('a')) {
             return el.previousElementSibling.querySelector('a').getAttribute('href')
         }
         return null
     }
-    document.querySelectorAll('.lfm__{{ $uniqueID }} + * button').forEach((button) => {
+    document.querySelectorAll('lfm__{{ $uniqueID }}').forEach((button) => {
 
         button.addEventListener('click', function () {
             let path = getPath(button);
@@ -118,7 +119,7 @@
 
                 let newValues = new Set(values);
 
-                this.$refs.fileManagerButton.innerText = `{{ $element->getTitle() }} (${newValues.size})`
+                this.$refs.fileManagerButton.innerText = `{{ $title }} (${newValues.size})`
             }
         }))
     });
