@@ -3,11 +3,8 @@
 namespace Sweet1s\MoonshineFileManager;
 
 use Closure;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use MoonShine\Exceptions\FieldException;
-use MoonShine\Fields\File;
+use MoonShine\UI\Fields\File;
+use MoonShine\UI\Exceptions\FieldException;
 
 class FileManager extends File
 {
@@ -50,67 +47,20 @@ class FileManager extends File
         return $this->title;
     }
 
-    public function store(UploadedFile|string $file): string
+    public function getRequestValue(string|int|null $index = null): mixed
     {
-        if (is_string($file)) {
-            $initPath = str_replace(config('app.url') . '/storage/', '', $file);
-            $path = Storage::disk('public')->path($initPath);
-            if (!file_exists($path)) {
-                Log::error("File not found: $path");
-                throw new FieldException("File not found: $path");
-            }
-
-            $file = new UploadedFile($path, basename($file));
-
-            $extension = $file->extension();
-
-            throw_if(
-                !$this->isAllowedExtension($extension),
-                new FieldException("$extension not allowed")
-            );
-
-            return $initPath;
+        if (! \is_null(static::$requestValueResolver)) {
+            return \call_user_func(static::$requestValueResolver, $index, $this->getDefaultIfExists(), $this);
         }
 
-        throw new FieldException('Invalid file');
-    }
+        $value = $this->prepareRequestValue(
+            $this->getCore()->getRequest()->get(
+                $this->getRequestNameDot($index),
+                $this->getDefaultIfExists()
+            ) ?? false
+        );
 
-    protected function resolveOnApply(): Closure
-    {
-        return function ($item) {
-            $requestValue = $this->requestValue();
-
-            $oldValues = request()
-                ->collect($this->hiddenOldValuesKey());
-
-            data_forget($item, 'hidden_' . $this->column());
-
-            $saveValue = $this->isMultiple() ? $oldValues : $oldValues->first();
-
-            if ($requestValue !== false) {
-                if ($this->isMultiple()) {
-                    $paths = [];
-
-                    $requestValue = explode(',', $requestValue[0]);
-
-                    foreach ($requestValue as $file) {
-                        if ($file === '') {
-                            continue;
-                        }
-
-                        $paths[] = $this->store($file);
-                    }
-
-                    $saveValue = $saveValue->merge($paths)
-                        ->values()
-                        ->unique()
-                        ->toArray();
-                } else {
-                    $saveValue = $this->store($requestValue);
-                }
-            }
-            return data_set($item, $this->column(), $saveValue);
-        };
+        return explode(',', $value);
     }
 
     /**
@@ -159,5 +109,15 @@ class FileManager extends File
     public function customName(Closure $name): static
     {
         throw new FieldException('FileManager field cannot have a custom name');
+    }
+
+    public function viewData(): array
+    {
+        return [
+            ...parent::viewData(),
+            'title' => $this->getTitle(),
+            'typeOfFileManager' => $this->getTypeOfFileManager(),
+            'id' => $this->getIdentity(),
+        ];
     }
 }
